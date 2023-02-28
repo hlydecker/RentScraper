@@ -31,14 +31,12 @@ rent_scrape <- function(state, postcode, suburb, beds, baths, pages) {
   # Number of pages to search through
   props_to_pull <- pages
 
-  suburb <-
-
   # Create a list of URLs to scrape through
   urls <- paste0(
     'https://www.auhouseprices.com/rent/list/',
     state, "/",
     postcode, "/",
-    suburb, "/",
+    gsub("\\s+", "+", suburb), "/",
     1:props_to_pull,
     '/?sort=date&type=apartment&bmin=',
     prop_config[1],
