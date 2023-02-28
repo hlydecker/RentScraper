@@ -20,47 +20,45 @@ prop_config <- c(1, 1)    # target 1 bed 1 bath apartments
 props_to_pull <- 25       # pages of apartments to loop through
 
 
-setwd("") # set working directory to save outputs
-
 # scrape ######################################################################
 
 # fill in suburb-specific url from https://www.auhouseprices.com/rent
-urls <- paste0('',
+urls <- paste0('https://www.auhouseprices.com/rent/list/NSW/2088/Mosman/',
                1:props_to_pull, '/?sort=date&type=apartment&bmin=',
                prop_config[1], '&bmax=', prop_config[1])
 
 # loop through URLs
 for (i in 1:length(urls)) {
-  
+
   if(i == 1 & exists('rent_all')) rm(rent_all)
-  
+
   curr_url <- urls[[i]]
   print(paste0('getting ', i))
   temp <- read_html(curr_url)
-  
+
   # sleep between requests for 2 seconds so as not to bombard the server
   print('sleeping')
   Sys.sleep(2)
-  
+
   address <- temp %>%
     html_nodes('h4') %>%
     html_text() %>%
     .[which(. != ' Search Filter and Sorting ')]
-  
+
   price_month <- temp %>%
     html_nodes('li') %>%
     html_text() %>%
     str_extract('^Rent.+/week.*\\d{4}$') %>%
     .[which(!is.na(.))]
-  
+
   config <- temp %>%
     html_nodes('li') %>%
     html_text() %>%
     str_extract(' \\d \\d \\d*[ ]*$') %>%
     .[which(!is.na(.))]
-  
+
   combined <- data.table(address, price_month, config)
-  
+
   # append results of this iteration to our master data set
   if(!exists('rent_all')) {
     rent_all <- combined
@@ -86,12 +84,12 @@ pattern <- paste0(prop_config[[1]], '\\s', prop_config[[2]])
 # create our analytical dataset
 ads <- rent_all[grepl(pattern, rent_all$config), ]
 
-# save it to csv file to share with agent 
+# save it to csv file to share with agent
 write.table(ads, file = 'rental_units_rushcuttersBay_2020_2022.csv', quote = FALSE, sep=',')
 
 # analyse ####################################################################
 
-# pre-smoothing plot the distribution 
+# pre-smoothing plot the distribution
 ads %>%
   ggplot(aes(x = reorder(factor(format(month, '%b %Y')), as.numeric(interaction(month(month), year(month)))), y = price)) +
   geom_boxplot() +
@@ -100,7 +98,7 @@ ads %>%
   theme_bw()+
   theme(panel.grid = element_blank())+
   labs(x = 'Month rented', y = 'Weekly rent',
-       title = 'Distribution of weekly rent in Rushcutters Bay',
+       title = 'Distribution of weekly rent in Mosman',
        subtitle = 'August 2020 - November 2022')
 
 # what is the suburb median?
@@ -125,16 +123,16 @@ rol_median %>%
   geom_bar(stat = 'identity', fill="#8A1A6C") +
   coord_cartesian(ylim = c(400, 600)) +
   theme_bw()+
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5), 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5),
         panel.grid = element_blank()) +
   scale_x_date(date_labels = "%b %Y", date_breaks = '1 month') +
   labs(x = 'Month rented', y = 'Smoothed weekly rent',
        title = 'Weekly rental prices in Rushcutters Bay',
        subtitle = 'Smoothed by rolling quarterly median')
 
-# take a closer look at an address of interest. I used it to look at my apartment building 
+# take a closer look at an address of interest. I used it to look at my apartment building
 building <- ads %>%
-  filter(grepl("", address, ignore.case = TRUE) # fill in the grepl 
+  filter(grepl("", address, ignore.case = TRUE) # fill in the grepl
 
 # extract the year from the date column
 building$date <- as.Date(building$month, format = "%Y-%m-%d")
@@ -155,7 +153,7 @@ max_price_by_unit <- building %>%
 ggplot(data = max_price_by_unit, aes(x = unit_number, y = price)) +
   geom_col(fill="#8A1A6C") +
   labs(x = "Unit", y = "Price") +
-  geom_hline(yintercept = median, color = "black", linetype = "dashed") + 
+  geom_hline(yintercept = median, color = "black", linetype = "dashed") +
   theme_bw()+
   theme(panel.grid = element_blank()) +
   labs(x = 'Unit', y = 'Price ($ per week)',
