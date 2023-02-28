@@ -270,12 +270,14 @@ ads <- rent_all[grepl(pattern, rent_all$config), ]
 
 
 ```{r}
-rent_data %>%
+p <- rent_data2 %>%
   drop_na() %>% 
-  ggplot(aes(x = reorder(
+  mutate(month = reorder(
     factor(format(month, '%b %Y')), as.numeric(interaction(month(month), year(month)))
-  ), y = price)) +
+  )) %>% 
+  ggplot(aes(x = month, y = price)) +
   geom_boxplot() +
+  geom_hline(aes(label = "Current Rent"), yintercept = 500, color = "green") +
   geom_jitter(alpha = 0.2) +
   theme_bw() +
   theme(panel.grid = element_blank()) +
@@ -285,7 +287,13 @@ rent_data %>%
     title = paste0('Distribution of weekly rent in ',suburb),
     subtitle = 'August 2020 - November 2022'
   )
+
+library(plotly)
+
+ggplotly(p)
 ```
+
+
 
 
 

@@ -19,6 +19,7 @@ library(rvest)
 library(stats)
 library(tidyverse)
 library(GGally)
+library(plotly)
 
 library(shiny)
 
@@ -29,6 +30,8 @@ rent_scrape <- function(state, postcode, suburb, beds, baths, pages) {
   prop_config <- c(beds, baths)
   # Number of pages to search through
   props_to_pull <- pages
+
+  suburb <-
 
   # Create a list of URLs to scrape through
   urls <- paste0(
@@ -102,13 +105,13 @@ ui <- fluidPage(
       numericInput("baths", "Baths:", 1, min = 1, max = 5),
       numericInput("pages", "Pages to Scrape:", 3, min = 1, max = 100),
       h2("Rent Details (price per week)"),
-      numericInput("current_rent", "Current Rent", 0),
-      numericInput("new_rent", "Proposed Rent", 0),
+      numericInput("current_rent", "Current Rent", 0, min = 0),
+      numericInput("new_rent", "Proposed Rent", 0, min = 0),
       actionButton("scrape", "Scrape Data")
     ),
     mainPanel(
       tabsetPanel(
-        tabPanel("Visualisations", plotOutput("boxplots")),
+        tabPanel("Visualisations", plotlyOutput("boxplots")),
         tabPanel("Data", DT::dataTableOutput("results"))
       )
     )
@@ -132,13 +135,14 @@ server <- function(input, output) {
   # Define output for table
   output$results <- DT::renderDataTable(scraped_data())
 
-  output$boxplots <- renderPlot({
+  output$boxplots <- renderPlotly({
 
-    scraped_data() %>%
+    p <- scraped_data() %>%
       drop_na() %>%
-      ggplot(aes(x = reorder(
+      mutate(month = reorder(
         factor(format(month, '%b %Y')), as.numeric(interaction(month(month), year(month)))
-      ), y = price)) +
+      )) %>%
+      ggplot(aes(x = month, y = price)) +
       geom_boxplot() +
       geom_jitter(alpha = 0.2) +
       geom_hline(yintercept = input$current_rent, color = "dark green") +
@@ -150,8 +154,10 @@ server <- function(input, output) {
         x = 'Month rented',
         y = 'Weekly rent',
         title = paste0('Distribution of weekly rent in ',input$suburb, ", ", input$state),
-        subtitle = paste0(input$beds, " bed", input$baths, " baths")
+        subtitle = paste0(input$beds, " beds", input$baths, " baths")
       )
+
+    ggplotly(p)
   })
 
 }
