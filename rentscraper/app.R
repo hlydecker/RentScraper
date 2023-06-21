@@ -24,7 +24,7 @@ library(plotly)
 library(shiny)
 
 # Global functions
-rent_scrape <- function(state, postcode, suburb, beds, baths, pages) {
+rent_scrape <- function(state, postcode, suburb, beds, baths, pages, unit_type) {
   # prepare config for the URL scraping
   # TODO: make this work with carspaces too
   prop_config <- c(beds, baths)
@@ -38,7 +38,9 @@ rent_scrape <- function(state, postcode, suburb, beds, baths, pages) {
     postcode, "/",
     gsub("\\s+", "+", suburb), "/",
     1:props_to_pull,
-    '/?sort=date&type=apartment&bmin=',
+    '/?sort=date&type=',
+    unit_type,
+    '&bmin=',
     prop_config[1],
     '&bmax=',
     prop_config[1]
@@ -95,10 +97,11 @@ ui <- fluidPage(
   sidebarLayout(
     sidebarPanel(
       h2("Location"),
-      textInput("state", "State:", "NSW"),
+      selectInput("state", "State:", choices = c("QLD","NSW","VIC","SA","TAS","WA","ACT")),
       textInput("postcode", "Postcode:", "2088"),
       textInput("suburb", "Suburb:", "Mosman"),
       h2("Unit Details"),
+      selectInput("unit_type", "Unit Type:", choices = c("apartment","house")),
       numericInput("beds", "Beds:", 2, min = 1, max = 5),
       numericInput("baths", "Baths:", 1, min = 1, max = 5),
       numericInput("pages", "Pages to Scrape:", 3, min = 1, max = 100),
@@ -122,12 +125,13 @@ server <- function(input, output) {
   # Define reactive function to scrape data
   scraped_data <- reactive({
     req(input$scrape)
-    rent_scrape(input$state,
+    isolate(rent_scrape(input$state,
                 input$postcode,
                 input$suburb,
                 input$beds,
                 input$baths,
-                input$pages)
+                input$pages,
+                input$unit_type))
   })
 
   # Define output for table

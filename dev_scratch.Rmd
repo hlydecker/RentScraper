@@ -196,7 +196,7 @@ rent_scrape <- function(state, postcode, suburb, beds, baths, pages) {
 
 
 ```{r}
-rent_data <- rent_scrape(state = "NSW", suburb = "Mosman", postcode = "2088", beds = 1, baths = 1 ,pages = 3)
+rent_data <- rent_scrape(state = "NSW", suburb = "Mosman", postcode = "2088", beds = 1, baths = 1 ,pages = 100)
 ```
 
 ```{r}
@@ -270,14 +270,14 @@ ads <- rent_all[grepl(pattern, rent_all$config), ]
 
 
 ```{r}
-p <- rent_data2 %>%
+p <- rent_data %>%
   drop_na() %>% 
   mutate(month = reorder(
     factor(format(month, '%b %Y')), as.numeric(interaction(month(month), year(month)))
   )) %>% 
   ggplot(aes(x = month, y = price)) +
   geom_boxplot() +
-  geom_hline(aes(label = "Current Rent"), yintercept = 500, color = "green") +
+  geom_hline(yintercept = 500, color = "green", linetype = "dashed") +
   geom_jitter(alpha = 0.2) +
   theme_bw() +
   theme(panel.grid = element_blank()) +
@@ -294,17 +294,58 @@ ggplotly(p)
 ```
 
 
+```{r}
+p <- rent_data %>% 
+  ggplot(aes(x=price)) +
+  geom_histogram() + 
+  geom_vline(xintercept = 500, linetype = "dashed", color = "dark green") +
+  theme_bw() +
+  theme(panel.grid = element_blank()) +
+  labs(
+    x = "Weekly Rent",
+    y = "Number of Properties"
+  )
+ggplotly(p)
+```
 
 
 
 ```{r}
+library(highcharter)
+
+
+hcboxplot(
+  x = rent_data$price,
+  var = rent_data$month,
+  name = "Weekly rent",
+  color = "#2980b9",
+  outliers = FALSE
+) %>%
+  hc_chart(type = "column") %>%
+  hc_title(text = "Weekly rent in 2088 Mosman, NSW: 1 bed 1 bath units") %>%
+  hc_yAxis(title = list(text = "Height in metre")) %>%
+  hc_plotOptions(scatter = list(jitter = list(x = .1, y = 0)))
+```
+
+
+```{r}
+rent_data %>% 
+  ggplot(aes(x=month, y = price))+
+  geom_jitter()+
+  geom_smooth() +
+  theme_bw() +
+  theme(panel.grid = element_blank())
+```
+
+
+```{r}
 # what is the suburb median?
-median(ads$price)
+median(rent_data$price)
 
 # smooth data using rolling quarterly median
-monthly_medians <- ads %>%
+monthly_medians <- rent_data %>%
   group_by(month) %>%
-  summarise(median_price = median(price))
+  summarise(median_price = median(price), min_price = min(price), max_price = max(price))
 
 rol_median <- rollmedian(monthly_medians$median_price, 3, na.pad = TRUE,
                          align = 'right')
