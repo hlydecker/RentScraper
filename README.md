@@ -1,13 +1,13 @@
 # RentScraper
 
-Scrapes rental listings AU House Prices from https://www.auhouseprices.com/rent/. Slightly adjusted code from [Embracing the Random](https://embracingtherandom.com/r/web-scraping/rent-scraping/). 
+The first alpha release of RentScraper.
 
-* Scrapes suburb rental listings 
-* Smooths data around quarterly median 
-* Finds median price for a specific address (used to capture rentals within my building) 
+Rent scraper is an open source tool for residential real estate rental business analytics.
 
-To run: 
-* Find URL for suburb of interest at auhouseprices.com/rent 
-* Fill in parameters 
-* Adjust plot titles/subtitles as required
-* Run 
+Are you a:
+
+- property investor looking to optimise your return?
+- property manager looking to provide the best returns for your clients?
+- tenant looking to propose reasonable rents in light of market conditions?
+
+If you answered **yes** to any of the above, RentScraper provides a solution to your problems.
