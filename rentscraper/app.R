@@ -15,10 +15,13 @@ library(ggplot2)
 library(data.table)
 library(lubridate)
 library(zoo)
+library(leaflet)
 library(rvest)
 library(stats)
+library(tidygeocoder)
 library(tidyverse)
 library(GGally)
+library(ggmap)
 library(plotly)
 
 library(shiny)
@@ -97,7 +100,7 @@ ui <- fluidPage(
   sidebarLayout(
     sidebarPanel(
       h2("Location"),
-      selectInput("state", "State:", choices = c("QLD","NSW","VIC","SA","TAS","WA","ACT")),
+      selectInput("state", "State:", choices = c("NSW","VIC","QLD","SA","TAS","WA","ACT")),
       textInput("postcode", "Postcode:", "2088"),
       textInput("suburb", "Suburb:", "Mosman"),
       h2("Unit Details"),
@@ -112,8 +115,14 @@ ui <- fluidPage(
     ),
     mainPanel(
       tabsetPanel(
-        tabPanel("Visualisations", plotlyOutput("boxplots")),
-        tabPanel("Data", DT::dataTableOutput("results"))
+        tabPanel("Visualisations",
+                 plotlyOutput("boxplots"),
+                 plotlyOutput("histogram")
+                 ),
+        tabPanel("Data", DT::dataTableOutput("results")),
+        tabPanel("Map",
+                 h4("NOTE: this feature is still under development and will take some time to load."),
+                 leafletOutput("map"))
       )
     )
   )
@@ -139,7 +148,7 @@ server <- function(input, output) {
 
   output$boxplots <- renderPlotly({
 
-    p <- scraped_data() %>%
+    scraped_data() %>%
       drop_na() %>%
       mutate(month = reorder(
         factor(format(month, '%b %Y')), as.numeric(interaction(month(month), year(month)))
@@ -158,8 +167,55 @@ server <- function(input, output) {
         title = paste0('Distribution of weekly rent in ',input$suburb, ", ", input$state),
         subtitle = paste0(input$beds, " beds", input$baths, " baths")
       )
+  })
 
-    ggplotly(p)
+  # Generate the histogram
+  output$histogram <- renderPlotly({
+    scraped_data() %>%
+      drop_na() %>%
+      filter(month >= Sys.Date() - months(3)) %>%
+      ggplot(aes(x = price)) +
+      geom_histogram(binwidth = 50, fill = "lightblue", color = "black") +
+      geom_vline(xintercept = input$current_rent, color = "dark green") +
+      geom_vline(xintercept = input$new_rent, color = "red") +
+      theme_bw() +
+      theme(panel.grid = element_blank()) +
+      labs(
+        x = 'Weekly rent',
+        y = 'Count',
+        title = 'Distribution of Weekly Rents in the Last 3 Months'
+      )
+  })
+
+  # Generate the map
+  output$map <- renderLeaflet({
+    # Create a leaflet map object
+    map <- leaflet() %>%
+      addTiles()  # Add the default map tiles
+
+    # Geocode addresses and add markers to the map
+    data <- scraped_data()
+    if (!is.null(data) && nrow(data) > 0) {
+      geocoded_data <- tidygeocoder::geocode(data, address = "address", method = "osm")
+
+      # Add markers with rent and configuration information
+      for (i in seq_along(geocoded_data$lat)) {
+        address <- data$address[i]
+        rent <- data$price[i]
+        config <- data$config[i]
+
+        map <- map %>%
+          addMarkers(
+            lat = geocoded_data$lat[i],
+            lng = geocoded_data$long[i],
+            popup = paste("Address:", address, "<br>",
+                          "Rent:", rent, "<br>",
+                          "Configuration:", config)
+          )
+      }
+    }
+
+    map  # Return the modified map object
   })
 
 }
