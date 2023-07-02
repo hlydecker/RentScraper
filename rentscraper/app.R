@@ -109,6 +109,7 @@ ui <- fluidPage(
       numericInput("baths", "Baths:", 1, min = 1, max = 5),
       numericInput("pages", "Pages to Scrape:", 3, min = 1, max = 100),
       h2("Rent Details (price per week)"),
+      h4("Current rent is shown on plots in green, proposed rent in red."),
       numericInput("current_rent", "Current Rent", 0, min = 0),
       numericInput("new_rent", "Proposed Rent", 0, min = 0),
       actionButton("scrape", "Scrape Data")
@@ -165,7 +166,7 @@ server <- function(input, output) {
         x = 'Month rented',
         y = 'Weekly rent',
         title = paste0('Distribution of weekly rent in ',input$suburb, ", ", input$state),
-        subtitle = paste0(input$beds, " beds", input$baths, " baths")
+        subtitle = paste0(input$beds, " bedrooms", input$baths, " bathrooms")
       )
   })
 
