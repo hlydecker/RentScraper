@@ -68,6 +68,7 @@ rent_scrape <- function(state, postcode, suburb, beds, baths, pages, unit_type) 
       html_text() %>%
       str_extract(' \\d \\d \\d*[ ]*$') %>%
       .[which(!is.na(.))]
+
     combined <- data.table(address, price_month, config)
     return(combined)
   }))
@@ -112,7 +113,8 @@ ui <- fluidPage(
       h4("Current rent is shown on plots in green, proposed rent in red."),
       numericInput("current_rent", "Current Rent", 0, min = 0),
       numericInput("new_rent", "Proposed Rent", 0, min = 0),
-      actionButton("scrape", "Scrape Data")
+      actionButton("scrape", "Scrape Data"),
+      downloadButton("download_csv", "Export CSV")
     ),
     mainPanel(
       tabsetPanel(
@@ -146,6 +148,14 @@ server <- function(input, output) {
 
   # Define output for table
   output$results <- DT::renderDataTable(scraped_data())
+
+                                          # FIXME: Attempt to make property details more clear to users
+                                          # TODO: Should probably fix on server side rather than UI
+                                          # drop_na() %>%
+                                          # separate_wider_delim(config, names = c("bedrooms", "bathrooms", "carspaces"), delim = " ", too_few = "align_start", too_many = "drop") %>%
+                                          # # Convert the columns to numeric
+                                          # mutate(across(c(bedrooms, bathrooms, carspaces), as.numeric)) %>%
+                                          # dplyr::select(address, price_month, month, price, bedrooms, bathrooms, carspaces)
 
   output$boxplots <- renderPlotly({
 
@@ -218,6 +228,24 @@ server <- function(input, output) {
 
     map  # Return the modified map object
   })
+  # Add a reactive value to store the scraped data
+  scraped_data_df <- reactiveVal()
+
+  # Update the reactive value when the "Scrape Data" button is clicked
+  observeEvent(input$scrape, {
+    scraped_data_df(scraped_data())
+  })
+
+  # Define the download handler for the CSV file
+  output$download_csv <- downloadHandler(
+    filename = function() {
+      paste("rent_data_", Sys.Date(), ".csv", sep = "")
+    },
+    content = function(file) {
+      # Save the data to a CSV file
+      write.csv(scraped_data_df(), file, row.names = FALSE)
+    }
+  )
 
 }
 # Run the application
